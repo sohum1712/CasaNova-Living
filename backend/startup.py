@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import uvicorn
 import sys
 
@@ -11,11 +12,14 @@ def startup():
         print("Starting FastAPI server on http://localhost:8000 ...")
 
         # Start the server - DB pool is initialized via @app.on_event("startup") in main.py
+        port = int(os.environ.get("PORT", 8000))
+        reload = os.environ.get("DEBUG", "false").lower() == "true"
+
         uvicorn.run(
             "main:app",
             host="0.0.0.0",
-            port=8000,
-            reload=True,  # Enable auto-reload for development
+            port=port,
+            reload=reload,
             log_level="info",
         )
 
