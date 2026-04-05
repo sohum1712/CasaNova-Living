@@ -13,7 +13,7 @@ from app.dependencies import get_current_user
 from app.config import app_config
 from app.core_auth.security import get_jwt_secret
 
-load_dotenv()
+load_dotenv(override=False)  # Railway env vars take precedence over .env file
 setup_logging()
 log = get_logger(__name__)
 

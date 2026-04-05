@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from app.logging_config import get_logger
 
 # Load environment variables
-load_dotenv()
+load_dotenv(override=False)  # Railway env vars take precedence over .env file
 
 # Setup logger for this module
 log = get_logger(__name__)
