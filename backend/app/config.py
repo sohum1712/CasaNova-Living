@@ -33,22 +33,27 @@ class AppConfig:
     @property
     def database_config(self) -> dict:
         """Connection kwargs for psycopg2 (supports DATABASE_URL or discrete DB_* vars)."""
-        url = os.getenv("DATABASE_URL", "").strip()
+        # Always check os.environ directly first to bypass any .env file interference
+        url = os.environ.get("DATABASE_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
         if url:
             cfg = _parse_database_url(url)
-            sslmode = os.getenv("DB_SSLMODE", "").strip()
+            sslmode = os.environ.get("DB_SSLMODE", "").strip()
             if sslmode:
                 cfg["sslmode"] = sslmode
             return cfg
 
+        host = os.environ.get("DB_HOST", "").strip()
+        user = os.environ.get("DB_USER", "").strip()
+        password = os.environ.get("DB_PASSWORD", "").strip()
+
         base_config = {
-            "host": os.getenv("DB_HOST", "localhost"),
-            "port": int(os.getenv("DB_PORT", "5432")),
-            "database": os.getenv("DB_NAME", "postgres"),
-            "user": os.getenv("DB_USER"),
-            "password": os.getenv("DB_PASSWORD"),
+            "host": host or "localhost",
+            "port": int(os.environ.get("DB_PORT", "5432")),
+            "database": os.environ.get("DB_NAME", "postgres"),
+            "user": user or None,
+            "password": password,
         }
-        sslmode = os.getenv("DB_SSLMODE", "").strip()
+        sslmode = os.environ.get("DB_SSLMODE", "").strip()
         if sslmode:
             base_config["sslmode"] = sslmode
         return base_config
