@@ -22,11 +22,12 @@ interface StoreOption {
   region: string;
 }
 
+// Dark-safe input: no white flash on focus, no browser autofill override
 const inputClass =
-  'w-full bg-white/[0.05] border border-white/10 text-white rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-[#ccff00]/50 focus:bg-white/[0.08] transition-all placeholder:text-white/20 font-medium';
+  'w-full bg-white/[0.06] border border-white/10 text-white rounded-2xl py-4 pl-12 pr-4 outline-none focus:border-[#ccff00]/60 focus:ring-0 transition-colors placeholder:text-white/25 font-medium [color-scheme:dark]';
 
 const selectClass =
-  'w-full bg-white/[0.05] border border-white/10 text-white rounded-2xl py-4 pl-12 pr-10 outline-none focus:border-[#ccff00]/50 focus:bg-white/[0.08] transition-all font-medium appearance-none cursor-pointer';
+  'w-full bg-[#1e293b] border border-white/10 text-white rounded-2xl py-4 pl-12 pr-10 outline-none focus:border-[#ccff00]/60 transition-colors font-medium appearance-none cursor-pointer [color-scheme:dark]';
 
 export default function Register() {
   const navigate = useNavigate();
@@ -48,12 +49,10 @@ export default function Register() {
     region: '',
   });
 
-  // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) navigate('/dashboard', { replace: true });
   }, [isAuthenticated, navigate]);
 
-  // Load stores for dropdown (public endpoint)
   useEffect(() => {
     apiClient.get('/auth/stores-public')
       .then(r => setStores(r.data))
@@ -63,7 +62,6 @@ export default function Register() {
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm(f => ({ ...f, [key]: e.target.value }));
 
-  // Auto-fill region when store is selected
   const handleStoreChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     const store = stores.find(s => String(s.store_id) === id);
@@ -82,7 +80,7 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      const res = await apiClient.post('/auth/register', {
+      await apiClient.post('/auth/register', {
         username:   form.username.trim(),
         email:      form.email.trim().toLowerCase(),
         password:   form.password,
@@ -93,33 +91,23 @@ export default function Register() {
         region:     form.region.trim() || null,
         avatar_url: null,
       });
-      toast.success('Account created!', {
-        description: 'You can now sign in with your credentials.',
-      });
-      navigate('/login', { replace: false });
+      toast.success('Account created!', { description: 'You can now sign in.' });
+      navigate('/login');
     } catch (err: any) {
       const status = err.response?.status;
       const detail = err.response?.data?.detail || '';
-
       let message = 'Something went wrong. Please try again.';
       if (err.code === 'ERR_NETWORK') {
-        message = 'Unable to connect. Please check your connection and try again.';
+        message = 'Unable to connect. Check your connection.';
       } else if (status === 400) {
-        if (detail.toLowerCase().includes('username')) {
-          message = 'That username is already taken. Please choose another.';
-        } else if (detail.toLowerCase().includes('email')) {
-          message = 'An account with that email already exists.';
-        } else if (detail.toLowerCase().includes('store')) {
-          message = 'Invalid store selection. Please refresh and try again.';
-        } else {
-          message = 'Please check your details and try again.';
-        }
+        if (detail.toLowerCase().includes('username')) message = 'That username is already taken.';
+        else if (detail.toLowerCase().includes('email')) message = 'An account with that email already exists.';
+        else message = 'Please check your details and try again.';
       } else if (status === 422) {
         message = 'Please fill in all required fields correctly.';
       } else if (status && status >= 500) {
         message = 'Server error. Please try again in a moment.';
       }
-
       toast.error('Registration failed', { description: message });
     } finally {
       setLoading(false);
@@ -135,31 +123,37 @@ export default function Register() {
     <div className="min-h-screen bg-[#0f172a] flex items-center justify-center p-6 selection:bg-[#ccff00]/30">
       {/* Background glows */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ccff00]/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-[-10%] right-[-10%] w-[500px] h-[500px] bg-[#ccff00]/8 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[400px] h-[400px] bg-blue-500/8 rounded-full blur-[120px]" />
       </div>
 
       <div className="w-full max-w-[520px] relative py-8">
-        <div className="bg-white/[0.03] backdrop-blur-3xl border border-white/10 rounded-[32px] p-10 shadow-2xl">
+        <div className="bg-[#0f1f35] border border-white/[0.08] rounded-[32px] p-10 shadow-2xl">
+
           {/* Header */}
-          <div className="flex flex-col items-center mb-10">
-            <div className="w-16 h-16 bg-[#ccff00] rounded-2xl flex items-center justify-center shadow-[0_0_25px_rgba(204,255,0,0.3)] mb-6 animate-in zoom-in duration-700">
-              <ShieldCheck size={36} strokeWidth={2.5} className="text-[#0f172a]" />
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-14 h-14 bg-[#ccff00] rounded-2xl flex items-center justify-center shadow-[0_0_24px_rgba(204,255,0,0.25)] mb-5">
+              <ShieldCheck size={30} strokeWidth={2.5} className="text-[#0f172a]" />
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tight mb-2">Create Account</h1>
-            <p className="text-white/50 text-sm font-medium">CasaNova Living — Staff Registration</p>
+            <h1 className="text-2xl font-black text-white tracking-tight mb-1">Create Account</h1>
+            <p className="text-white/40 text-sm font-medium">CasaNova Living — Staff Registration</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+
             {/* Name row */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div className="relative group">
                 <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 group-focus-within:text-[#ccff00] transition-colors">
                   <User size={16} />
                 </div>
                 <input
-                  type="text" placeholder="First name" value={form.first_name}
-                  onChange={set('first_name')} required
+                  type="text"
+                  placeholder="First name"
+                  value={form.first_name}
+                  onChange={set('first_name')}
+                  required
+                  autoComplete="given-name"
                   className={inputClass}
                 />
               </div>
@@ -168,8 +162,12 @@ export default function Register() {
                   <User size={16} />
                 </div>
                 <input
-                  type="text" placeholder="Last name" value={form.last_name}
-                  onChange={set('last_name')} required
+                  type="text"
+                  placeholder="Last name"
+                  value={form.last_name}
+                  onChange={set('last_name')}
+                  required
+                  autoComplete="family-name"
                   className={inputClass}
                 />
               </div>
@@ -181,69 +179,66 @@ export default function Register() {
                 <User size={18} />
               </div>
               <input
-                type="text" placeholder="Username / Staff ID" value={form.username}
-                onChange={set('username')} required autoComplete="username"
+                type="text"
+                placeholder="Username / Staff ID"
+                value={form.username}
+                onChange={set('username')}
+                required
+                autoComplete="username"
                 className={inputClass}
               />
             </div>
 
-            {/* Email */}
+            {/* Email — explicitly typed, no extra autofill triggers */}
             <div className="relative group">
               <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 group-focus-within:text-[#ccff00] transition-colors">
                 <Mail size={18} />
               </div>
               <input
-                type="email" placeholder="Email address" value={form.email}
-                onChange={set('email')} required autoComplete="email"
+                type="email"
+                placeholder="Work email"
+                value={form.email}
+                onChange={set('email')}
+                required
+                autoComplete="email"
                 className={inputClass}
               />
             </div>
 
-            {/* Role */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 group-focus-within:text-[#ccff00] transition-colors z-10">
-                <Building2 size={18} />
+            {/* Role + Store in a row */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 z-10">
+                  <Building2 size={16} />
+                </div>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30">
+                  <ChevronDown size={14} />
+                </div>
+                <select value={form.role} onChange={set('role')} className={selectClass}>
+                  {ROLES.map(r => (
+                    <option key={r.value} value={r.value} className="bg-[#1e293b] text-white">
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/30">
-                <ChevronDown size={16} />
-              </div>
-              <select value={form.role} onChange={set('role')} className={selectClass}>
-                {ROLES.map(r => (
-                  <option key={r.value} value={r.value} className="bg-[#0f172a] text-white">
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            {/* Store */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 group-focus-within:text-[#ccff00] transition-colors z-10">
-                <MapPin size={18} />
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 z-10">
+                  <MapPin size={16} />
+                </div>
+                <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/30">
+                  <ChevronDown size={14} />
+                </div>
+                <select value={form.store_id} onChange={handleStoreChange} className={selectClass}>
+                  <option value="" className="bg-[#1e293b] text-white/50">Store (optional)</option>
+                  {stores.map(s => (
+                    <option key={s.store_id} value={s.store_id} className="bg-[#1e293b] text-white">
+                      {s.store_name}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-white/30">
-                <ChevronDown size={16} />
-              </div>
-              <select value={form.store_id} onChange={handleStoreChange} className={selectClass}>
-                <option value="" className="bg-[#0f172a] text-white/50">Assign to store (optional)</option>
-                {stores.map(s => (
-                  <option key={s.store_id} value={s.store_id} className="bg-[#0f172a] text-white">
-                    {s.store_name} — {s.region}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Region (auto-filled or manual) */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/30 group-focus-within:text-[#ccff00] transition-colors">
-                <MapPin size={18} />
-              </div>
-              <input
-                type="text" placeholder="Region (e.g. North, South)" value={form.region}
-                onChange={set('region')}
-                className={inputClass}
-              />
             </div>
 
             {/* Password */}
@@ -263,11 +258,11 @@ export default function Register() {
               <button
                 type="button"
                 tabIndex={-1}
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute inset-y-0 right-3 flex items-center text-white/40 hover:text-[#ccff00] z-10"
+                onClick={() => setShowPassword(s => !s)}
+                className="absolute inset-y-0 right-3 flex items-center text-white/30 hover:text-[#ccff00] transition-colors z-10"
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
@@ -285,59 +280,57 @@ export default function Register() {
                 autoComplete="new-password"
                 className={`${inputClass} pr-14 ${
                   form.confirm_password && form.password !== form.confirm_password
-                    ? 'border-rose-500/50'
+                    ? 'border-rose-500/60'
                     : ''
                 }`}
               />
               <button
                 type="button"
                 tabIndex={-1}
-                onClick={() => setShowConfirm((s) => !s)}
-                className="absolute inset-y-0 right-3 flex items-center text-white/40 hover:text-[#ccff00] z-10"
-                aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                onClick={() => setShowConfirm(s => !s)}
+                className="absolute inset-y-0 right-3 flex items-center text-white/30 hover:text-[#ccff00] transition-colors z-10"
+                aria-label={showConfirm ? 'Hide password' : 'Show password'}
               >
-                {showConfirm ? <EyeOff size={20} /> : <Eye size={20} />}
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
               {form.confirm_password && form.password !== form.confirm_password && (
-                <p className="text-rose-400 text-[10px] font-bold mt-1 pl-2">Passwords do not match</p>
+                <p className="text-rose-400 text-[10px] font-semibold mt-1.5 pl-1">Passwords do not match</p>
               )}
             </div>
 
             <button
               type="submit"
               disabled={loading || !isValid}
-              className="w-full bg-[#ccff00] hover:bg-[#d9ff33] text-[#0f172a] font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(204,255,0,0.2)] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+              className="w-full bg-[#ccff00] hover:bg-[#d4ff1a] text-[#0f172a] font-black py-4 rounded-2xl transition-all shadow-[0_0_20px_rgba(204,255,0,0.15)] active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed mt-1"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />
               ) : (
                 <>
                   CREATE ACCOUNT
-                  <ArrowRight size={20} strokeWidth={2.5} />
+                  <ArrowRight size={18} strokeWidth={2.5} />
                 </>
               )}
             </button>
           </form>
 
-          <div className="mt-8 pt-8 border-t border-white/5 text-center space-y-3">
-            <p className="text-white/40 text-xs font-bold">
-              <Link to="/forgot-password" className="text-[#ccff00]/80 hover:text-[#ccff00] transition-colors mr-3">
-                Forgot password?
-              </Link>
-            </p>
-            <p className="text-white/40 text-xs font-bold">
+          <div className="mt-7 pt-7 border-t border-white/[0.06] text-center space-y-2.5">
+            <p className="text-white/35 text-xs font-medium">
               Already have an account?{' '}
-              <Link to="/login" className="text-[#ccff00] hover:text-white transition-colors">
+              <Link to="/login" className="text-[#ccff00] hover:text-white transition-colors font-bold">
                 Sign in
               </Link>
             </p>
-            <Link to="/" className="block text-white/30 hover:text-white text-[10px] font-bold uppercase tracking-widest transition-colors">
+            <Link
+              to="/"
+              className="block text-white/25 hover:text-white/60 text-[10px] font-bold uppercase tracking-widest transition-colors"
+            >
               Back to Home
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-white/20 text-[10px] font-black uppercase tracking-[0.2em] mt-8">
+        <p className="text-center text-white/15 text-[10px] font-black uppercase tracking-[0.2em] mt-6">
           CasaNova Living • Staff Portal
         </p>
       </div>

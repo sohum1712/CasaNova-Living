@@ -1,11 +1,23 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import jwt
-from passlib.context import CryptContext
 import os
 import hashlib
 import base64
 import secrets as _secrets
+
+# ── passlib/bcrypt compatibility patch ────────────────────────────────────────
+# passlib 1.7.4 reads bcrypt.__about__.__version__ which was removed in bcrypt 4.x
+# Patch it before importing CryptContext so passlib doesn't crash.
+try:
+    import bcrypt
+    if not hasattr(bcrypt, "__about__"):
+        import types
+        bcrypt.__about__ = types.SimpleNamespace(__version__=bcrypt.__version__)
+except Exception:
+    pass
+
+from passlib.context import CryptContext
+from jose import jwt
 
 from app.config import app_config
 from app.logging_config import get_logger
@@ -15,7 +27,6 @@ log = get_logger(__name__)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
-# truncate_error=False: don't raise on long passwords — our prehash always produces 44 chars anyway
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
 
 _RUNTIME_SECRET = _secrets.token_hex(32)

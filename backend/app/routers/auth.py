@@ -70,8 +70,9 @@ async def register(user_data: UserCreate):
     try:
         hashed_pwd = get_password_hash(user_data.password)
     except Exception as exc:
-        log.exception("Password hashing failed")
-        raise HTTPException(status_code=500, detail="Registration error. Please try again.") from exc
+        log.exception("Password hashing failed: %s", exc)
+        detail = str(exc) if _debug_mode() else "Registration error. Please try again."
+        raise HTTPException(status_code=500, detail=detail) from exc
 
     with get_db_cursor() as cursor:
         if user_data.store_id is not None:
@@ -231,6 +232,19 @@ async def reset_password(body: ResetPasswordRequest):
         success=True,
         message="Password updated. You can sign in with your new password.",
     )
+
+
+# ── Auth health (public, for debugging) ──────────────────────────────────────
+@router.get("/health")
+async def auth_health():
+    """Quick check that password hashing works."""
+    try:
+        from app.core_auth.security import get_password_hash, verify_password
+        h = get_password_hash("test")
+        ok = verify_password("test", h)
+        return {"status": "ok", "bcrypt": ok}
+    except Exception as exc:
+        return {"status": "error", "detail": str(exc)}
 
 
 # ── Current user ──────────────────────────────────────────────────────────────
