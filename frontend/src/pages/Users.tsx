@@ -89,9 +89,15 @@ export default function UsersPage() {
       toast.success('Member added successfully');
     },
     onError: (e: any) => {
-      toast.error('Failed to create user', {
-        description: e.response?.data?.detail || e.message,
-      });
+      const status = e.response?.status;
+      const detail = (e.response?.data?.detail || '').toLowerCase();
+      let msg = 'Could not create member. Please try again.';
+      if (status === 400) {
+        if (detail.includes('username')) msg = 'That username is already taken.';
+        else if (detail.includes('email')) msg = 'That email is already registered.';
+        else msg = 'Please check the details and try again.';
+      } else if (e.code === 'ERR_NETWORK') msg = 'Unable to connect. Check your connection.';
+      toast.error('Failed to create user', { description: msg });
     },
   });
 
@@ -103,7 +109,7 @@ export default function UsersPage() {
       toast.success('Member removed');
     },
     onError: (e: any) => {
-      toast.error('Failed to delete user', { description: e.response?.data?.detail || e.message });
+      toast.error('Failed to delete user', { description: 'Could not remove member. Please try again.' });
     },
   });
 

@@ -30,8 +30,7 @@ export default function ForgotPassword() {
         setDevHint(hint);
       }
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } };
-      toast.error('Request failed', { description: e.response?.data?.detail || 'Try again later.' });
+      toast.error('Request failed', { description: 'Something went wrong. Please try again later.' });
     } finally {
       setLoading(false);
     }

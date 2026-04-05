@@ -69,8 +69,8 @@ async def login(login_data: UserLogin):
 async def register(user_data: UserCreate):
     try:
         hashed_pwd = get_password_hash(user_data.password)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid password. Please try a different password.")
 
     with get_db_cursor() as cursor:
         if user_data.store_id is not None:
@@ -195,7 +195,10 @@ async def forgot_password(body: ForgotPasswordRequest):
 @router.post("/reset-password", response_model=ApiResponse)
 async def reset_password(body: ResetPasswordRequest):
     token_hash = hashlib.sha256(body.token.strip().encode()).hexdigest()
-    new_hash = get_password_hash(body.password)
+    try:
+        new_hash = get_password_hash(body.password)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid password. Please try a different password.")
 
     with get_db_cursor() as cursor:
         cursor.execute(

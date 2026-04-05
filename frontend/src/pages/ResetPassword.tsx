@@ -38,8 +38,12 @@ export default function ResetPassword() {
       toast.success('Password updated', { description: 'You can sign in with your new password.' });
       navigate('/login', { replace: false });
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } };
-      toast.error('Reset failed', { description: e.response?.data?.detail || 'Link may be expired.' });
+      const e = err as { response?: { status?: number } };
+      const status = e.response?.status;
+      let msg = 'Something went wrong. Please try again.';
+      if (status === 400) msg = 'Invalid or expired reset link. Request a new one.';
+      else if (status && status >= 500) msg = 'Server error. Please try again in a moment.';
+      toast.error('Reset failed', { description: msg });
     } finally {
       setLoading(false);
     }

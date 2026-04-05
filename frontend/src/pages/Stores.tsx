@@ -57,7 +57,11 @@ export default function StoresPage() {
       toast({ title: 'Store created successfully' });
     },
     onError: (e: any) => {
-      toast({ title: 'Error', description: e.response?.data?.detail || e.message, variant: 'destructive' });
+      const status = e.response?.status;
+      let msg = 'Could not create store. Please try again.';
+      if (status === 400) msg = 'Check the store details — code may already be in use.';
+      else if (e.code === 'ERR_NETWORK') msg = 'Unable to connect. Check your connection.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     },
   });
 

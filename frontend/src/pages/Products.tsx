@@ -74,7 +74,11 @@ export default function ProductsPage() {
       toast({ title: editProduct ? 'Product updated' : 'Product created' });
     },
     onError: (e: any) => {
-      toast({ title: 'Error', description: e.response?.data?.detail || e.message, variant: 'destructive' });
+      const status = e.response?.status;
+      let msg = 'Could not save product. Please try again.';
+      if (status === 400) msg = 'Check the product details and try again.';
+      else if (e.code === 'ERR_NETWORK') msg = 'Unable to connect. Check your connection.';
+      toast({ title: 'Error', description: msg, variant: 'destructive' });
     },
   });
 

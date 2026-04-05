@@ -93,7 +93,11 @@ export default function StockTransferPage() {
       toast({ title: 'Transfer created', description: 'Pending manager approval' });
     },
     onError: (e: any) => {
-      toast({ title: 'Failed', description: e.response?.data?.detail || e.message, variant: 'destructive' });
+      const status = e.response?.status;
+      let msg = 'Could not create transfer. Please try again.';
+      if (status === 400) msg = 'Check the transfer details — insufficient stock or invalid stores.';
+      else if (e.code === 'ERR_NETWORK') msg = 'Unable to connect. Check your connection.';
+      toast({ title: 'Failed', description: msg, variant: 'destructive' });
     },
   });
 
