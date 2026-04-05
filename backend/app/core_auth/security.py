@@ -3,6 +3,8 @@ from typing import Optional
 from jose import jwt
 from passlib.context import CryptContext
 import os
+import hashlib
+import base64
 import secrets as _secrets
 
 from app.config import app_config
@@ -33,14 +35,20 @@ def get_jwt_secret() -> str:
     return _RUNTIME_SECRET
 
 
+def _prehash(password: str) -> str:
+    """SHA-256 prehash to bypass bcrypt's 72-byte limit."""
+    digest = hashlib.sha256(password.encode("utf-8")).digest()
+    return base64.b64encode(digest).decode("utf-8")
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not hashed_password:
         return False
-    return pwd_context.verify(plain_password, hashed_password)
+    return pwd_context.verify(_prehash(plain_password), hashed_password)
 
 
 def get_password_hash(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(_prehash(password))
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:

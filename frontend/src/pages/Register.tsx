@@ -98,14 +98,29 @@ export default function Register() {
       });
       navigate('/login', { replace: false });
     } catch (err: any) {
-      // Show the real backend error, not a generic message
-      const detail =
-        err.response?.data?.detail ||
-        err.response?.data?.message ||
-        (err.code === 'ERR_NETWORK' ? 'Cannot reach server. Is the backend running?' : null) ||
-        err.message ||
-        'Registration failed. Please try again.';
-      toast.error('Registration failed', { description: detail });
+      const status = err.response?.status;
+      const detail = err.response?.data?.detail || '';
+
+      let message = 'Something went wrong. Please try again.';
+      if (err.code === 'ERR_NETWORK') {
+        message = 'Unable to connect. Please check your connection and try again.';
+      } else if (status === 400) {
+        if (detail.toLowerCase().includes('username')) {
+          message = 'That username is already taken. Please choose another.';
+        } else if (detail.toLowerCase().includes('email')) {
+          message = 'An account with that email already exists.';
+        } else if (detail.toLowerCase().includes('store')) {
+          message = 'Invalid store selection. Please refresh and try again.';
+        } else {
+          message = 'Please check your details and try again.';
+        }
+      } else if (status === 422) {
+        message = 'Please fill in all required fields correctly.';
+      } else if (status && status >= 500) {
+        message = 'Server error. Please try again in a moment.';
+      }
+
+      toast.error('Registration failed', { description: message });
     } finally {
       setLoading(false);
     }

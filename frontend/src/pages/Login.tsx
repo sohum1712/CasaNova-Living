@@ -68,13 +68,19 @@ const Login = () => {
       });
       navigate(redirectTo, { replace: true });
     } catch (error: unknown) {
-      const err = error as { response?: { data?: { detail?: string } }; code?: string; message?: string };
-      const detail =
-        err.response?.data?.detail ||
-        (err.code === 'ERR_NETWORK' ? 'Cannot reach server. Is the backend running on port 8000?' : null) ||
-        err.message ||
-        'Invalid email/username or password.';
-      toast.error('Sign-in failed', { description: detail });
+      const err = error as { response?: { data?: { detail?: string }; status?: number }; code?: string };
+      const status = err.response?.status;
+
+      let message = 'Something went wrong. Please try again.';
+      if (err.code === 'ERR_NETWORK') {
+        message = 'Unable to connect. Please check your connection.';
+      } else if (status === 401 || status === 403) {
+        message = 'Incorrect username or password.';
+      } else if (status && status >= 500) {
+        message = 'Server error. Please try again in a moment.';
+      }
+
+      toast.error('Sign-in failed', { description: message });
     } finally {
       setLoading(false);
     }
