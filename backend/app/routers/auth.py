@@ -69,8 +69,9 @@ async def login(login_data: UserLogin):
 async def register(user_data: UserCreate):
     try:
         hashed_pwd = get_password_hash(user_data.password)
-    except Exception:
-        raise HTTPException(status_code=400, detail="Invalid password. Please try a different password.")
+    except Exception as exc:
+        log.exception("Password hashing failed")
+        raise HTTPException(status_code=500, detail="Registration error. Please try again.") from exc
 
     with get_db_cursor() as cursor:
         if user_data.store_id is not None:

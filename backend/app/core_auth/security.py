@@ -15,10 +15,9 @@ log = get_logger(__name__)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 hours
 
+# truncate_error=False: don't raise on long passwords — our prehash always produces 44 chars anyway
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
 
-# Generated once at import time as a last-resort fallback
-# (sessions won't survive restarts, but the app will start)
 _RUNTIME_SECRET = _secrets.token_hex(32)
 
 
@@ -30,13 +29,13 @@ def get_jwt_secret() -> str:
         return key
     log.warning(
         "JWT_SECRET_KEY not set — using a generated runtime secret. "
-        "Sessions will be lost on restart. Set JWT_SECRET_KEY in Railway Variables."
+        "Sessions will be lost on restart. Set JWT_SECRET_KEY in production."
     )
     return _RUNTIME_SECRET
 
 
 def _prehash(password: str) -> str:
-    """SHA-256 prehash to bypass bcrypt's 72-byte limit."""
+    """SHA-256 prehash so bcrypt always receives a fixed-length 44-char string."""
     digest = hashlib.sha256(password.encode("utf-8")).digest()
     return base64.b64encode(digest).decode("utf-8")
 
@@ -44,7 +43,10 @@ def _prehash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     if not hashed_password:
         return False
-    return pwd_context.verify(_prehash(plain_password), hashed_password)
+    try:
+        return pwd_context.verify(_prehash(plain_password), hashed_password)
+    except Exception:
+        return False
 
 
 def get_password_hash(password: str) -> str:

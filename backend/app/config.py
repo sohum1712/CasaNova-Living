@@ -1,6 +1,5 @@
 import os
 from typing import Optional
-from urllib.parse import urlparse, unquote
 from dotenv import load_dotenv
 
 from app.logging_config import get_logger
@@ -13,18 +12,32 @@ log = get_logger(__name__)
 
 
 def _parse_database_url(url: str) -> dict:
-    """Parse postgres:// or postgresql:// URL into psycopg2 kwargs."""
+    """Parse postgres:// or postgresql:// URL into psycopg2 kwargs.
+    Strips query params that psycopg2 doesn't support (e.g. channel_binding).
+    """
+    # Strip query string before parsing — we handle sslmode manually
+    from urllib.parse import urlparse, unquote, parse_qs
+
     parsed = urlparse(url)
     if parsed.scheme not in ("postgres", "postgresql", "postgresql+psycopg2"):
         raise ValueError(f"Unsupported DATABASE_URL scheme: {parsed.scheme}")
+
     database = (parsed.path or "").lstrip("/") or "postgres"
-    return {
+
+    cfg = {
         "host": parsed.hostname or "localhost",
         "port": parsed.port or 5432,
         "database": database,
         "user": unquote(parsed.username) if parsed.username else None,
         "password": unquote(parsed.password) if parsed.password else "",
     }
+
+    # Extract only the params psycopg2 actually supports
+    qs = parse_qs(parsed.query)
+    if "sslmode" in qs:
+        cfg["sslmode"] = qs["sslmode"][0]
+
+    return cfg
 
 
 class AppConfig:
@@ -33,30 +46,29 @@ class AppConfig:
     @property
     def database_config(self) -> dict:
         """Connection kwargs for psycopg2 (supports DATABASE_URL or discrete DB_* vars)."""
-        # Always check os.environ directly first to bypass any .env file interference
-        url = os.environ.get("DATABASE_URL", "").strip() or os.getenv("DATABASE_URL", "").strip()
+        url = os.environ.get("DATABASE_URL", "").strip()
         if url:
             cfg = _parse_database_url(url)
+            # Allow env override of sslmode
             sslmode = os.environ.get("DB_SSLMODE", "").strip()
             if sslmode:
                 cfg["sslmode"] = sslmode
+            # Neon always needs SSL
+            if "neon.tech" in url and "sslmode" not in cfg:
+                cfg["sslmode"] = "require"
             return cfg
 
-        host = os.environ.get("DB_HOST", "").strip()
-        user = os.environ.get("DB_USER", "").strip()
-        password = os.environ.get("DB_PASSWORD", "").strip()
-
-        base_config = {
-            "host": host or "localhost",
+        cfg = {
+            "host": os.environ.get("DB_HOST", "localhost").strip(),
             "port": int(os.environ.get("DB_PORT", "5432")),
             "database": os.environ.get("DB_NAME", "postgres"),
-            "user": user or None,
-            "password": password,
+            "user": os.environ.get("DB_USER", "").strip() or None,
+            "password": os.environ.get("DB_PASSWORD", "").strip(),
         }
         sslmode = os.environ.get("DB_SSLMODE", "").strip()
         if sslmode:
-            base_config["sslmode"] = sslmode
-        return base_config
+            cfg["sslmode"] = sslmode
+        return cfg
 
     @property
     def cors_origins(self) -> list:
