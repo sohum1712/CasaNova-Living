@@ -230,6 +230,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Serve static assets (JS, CSS, images) — must be mounted before API routes
+if FRONTEND_STATIC_PATH.exists():
+    app.mount("/assets", StaticFiles(directory=str(FRONTEND_STATIC_PATH / "assets")), name="assets")
+    app.mount("/static", StaticFiles(directory=str(FRONTEND_STATIC_PATH)), name="static-files")
+
 API = "/api"
 
 # Public (no auth)
@@ -271,6 +276,11 @@ async def root():
 async def spa(full_path: str):
     if full_path.startswith("api/") or full_path.startswith("docs"):
         raise HTTPException(status_code=404)
+    # Serve actual static files (favicon, robots.txt, etc.) if they exist
+    static_file = FRONTEND_STATIC_PATH / full_path
+    if static_file.exists() and static_file.is_file():
+        return FileResponse(str(static_file))
+    # Fall back to index.html for SPA client-side routing
     f = FRONTEND_STATIC_PATH / "index.html"
     if f.exists():
         return FileResponse(str(f))
