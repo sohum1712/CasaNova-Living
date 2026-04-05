@@ -19,8 +19,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def get_jwt_secret() -> str:
-    key = app_config.jwt_secret_key
+    # Read directly from os.environ first to bypass any dotenv interference
+    key = os.environ.get("JWT_SECRET_KEY", "").strip()
+    if not key:
+        key = (app_config.jwt_secret_key or "").strip()
+    log.info(f"JWT_SECRET_KEY present: {bool(key)}, length: {len(key)}")
     if key:
+        return key
         return key
     if app_config.allow_insecure_jwt_default:
         log.warning(
